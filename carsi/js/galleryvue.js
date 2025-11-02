@@ -7,7 +7,7 @@ new Vue({
       key: "AIzaSyDorJpnMrA_9NeF-9QxPM80pPesTvANJAQ",
       response: {
         body: {
-          files: []
+          files: [400]
         }
       },
       folderId: "1pFhM0Ky3lmZwDCJHHKAbWNcZ-RW7cnza"
@@ -18,15 +18,11 @@ new Vue({
     },
   methods: {
     getResource: function() {
-      if(this.folderId.length <= 0 || this.folderId == "") {
-        this.response = "Please paste a Google Folder ID!", "bad"
-        return;
-      }
-
-      let url = "https://www.googleapis.com/drive/v3/files?q='" + this.folderId + "'+in+parents&key=" + this.key;
-
+        let url = "https://www.googleapis.com/drive/v3/files?q='" + this.folderId + "'+in+parents&pageSize=1000&key=" + this.key;
+        console.log(url);
       this.$http.get(url).then(
         response => {
+          debugger;  
           console.log(response)
           this.response = response
         })

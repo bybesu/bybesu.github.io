@@ -7,10 +7,11 @@
 <template id="app-template">
   <div class="app">
     <div class="images-wrapper">
-      <div class="ag-photo-gallery_list">
-          <a v-show="response.body.files.length > 0" v-for="file in response.body.files" :href="createDirectLink(file)" data-fancybox="gallery"/>
+      <div class="ag-photo-gallery_list" v-show="response.body.files.length > 0" v-for="file in response.body.files">
+          <a  :href="createDirectLink(file)" data-fancybox="gallery">
 
-          <img :src="createDirectLinkTh(file)" class="ag-photo-gallery_img" alt="" />
+          <img :src="createDirectLinkTh(file)" class="ag-photo-gallery_img" alt="" >
+        </a>  
       </div>  
     </div>
   </div>
