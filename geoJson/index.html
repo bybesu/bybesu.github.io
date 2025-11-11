@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GeoJSON Verisini Google Uydu Görüntüsü Üzerinde Görüntüleme</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        #map {
+            height: 90vh; 
+            width: 95%;
+            margin: 20px auto;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+</body>
+  <script>
+            // Not: URL'deki Türkçe karakter ("ç") doğru bir şekilde %C3%A7 olarak kodlanmıştır.
+//        const geoJsonUrl = "https://bybesu.github.io/geoJson/geojson/%C3%A7i%C3%A7ekli_kesin.json";
+
+        const geoJsonUrl = "https://bybesu.github.io/geoJson/geojson/çiçekli_kesin.json";
+
+        // 1. Haritayı Başlatma
+        const map = L.map('map').setView([40.0, 30.0], 7); // Başlangıç konumu
+
+        // 2. Google Uydu Görüntüsü Katmanını Ekleme
+        // Bu, Google uydu haritasını göstermenin yaygın bir yoludur.
+        // Google Maps API lisans kurallarına uygun olarak kullanmanız tavsiye edilir.
+        const googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
+            maxZoom: 20,
+            subdomains:['mt0','mt1','mt2','mt3'],
+            attribution: 'Map data &copy; Google Satellite'
+        }).addTo(map);
+
+        // 3. GeoJSON Verisini Yükleme
+        fetch(geoJsonUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Ağ yanıtı başarısız oldu.');
+                }
+                return response.json();
+            })
+            .then(data => {
+          debugger;
+          const geoJsonData = convertArrayToGeoJSONFeatureCollection(data);
+
+                // 4. GeoJSON Katmanını Oluşturma ve Haritaya Ekleme
+                const geoJsonLayer = L.geoJSON(geoJsonData, {
+                    // Stilleme Fonksiyonu
+                    style: function(feature) {
+                        // Uydu görüntüsü üzerinde daha iyi görünmesi için parlak renkler kullanıldı
+                        return {
+                            color: "#FFFF00",       // Kenarlık rengi (Sarı)
+                            weight: 1,
+                            opacity: 1,
+                            fillColor: "#FF00FF",   // Dolgu rengi (Parlak Eflatun)
+                            fillOpacity: 0.15      // Hafif şeffaf dolgu
+                        };
+                    },
+                    // Her bir öğe için Popup Ekleme
+                    onEachFeature: function (feature, layer) {
+                       if (feature.properties) {
+                    // Sahip bilgilerini çek ve formatla
+                    let kisiList = feature.properties.CalismaAlaniDosyaParselKisiList;
+                    let sahipler = kisiList.map(kisi => {
+                        let pay = `${kisi.Pay}/${kisi.Payda}`;
+                        return `${kisi.Ad} ${kisi.Soyad} (${pay})`;
+                    }).join('<br>');
+
+                    let htmlContent = `
+                        <h4>Parsel Bilgisi: ${feature.properties.GidenParselNo}</h4>
+                        <hr>
+                        <p><b>Ada/Parsel:</b> ${feature.properties.GidenAdaNo}/${feature.properties.GidenParselNo}</p>
+                        <p><b>Nitelik:</b> ${feature.properties.GidenNitelik}</p>
+                        <p><b>Alan:</b> ${feature.properties.GidenAlan} m²</p>
+                        <p><b>Sahipler:</b> <br>${sahipler}</p>
+                    `;
+                    layer.bindPopup(htmlContent);
+                }
+                    }
+                }).addTo(map);
+
+                // 5. Haritayı Verinin Sınırlarına Ayarlama
+                if (geoJsonLayer.getLayers().length > 0) {
+                    map.fitBounds(geoJsonLayer.getBounds());
+                }
+            })
+
+            .catch(error => {
+                debugger;
+                console.error("GeoJSON yüklenirken bir hata oluştu:", error);
+                alert("GeoJSON verisi yüklenemedi. Konsolu kontrol edin.");
+            });
+
+    
+        function parseWKTCoordinates(wktString) {
+            if (!wktString) return [];
+            
+            // MULTIPOLYGON'un dış ve iç parantezlerini temizle
+            const coordinatesString = wktString
+                .replace(/^MULTIPOLYGON\(\(\(/, "") 
+                .replace(/\)\)\)$/, "")
+                .trim();
+            
+            if (!coordinatesString) {
+                return [];
+            }
+            
+            // Birden fazla halka (Ring) veya delik (Hole) varsa ayır.
+            const polygonRings = coordinatesString.split(')),(');
+
+            const multiPolygon = polygonRings.map(ringString => {
+                // Parantezleri temizle (iç delikler için)
+                const cleanedRingString = ringString.replace(/\(|\)/g, '').trim();
+
+                const pairs = cleanedRingString.split(',');
+
+                const polygonCoordinates = pairs.map(pair => {
+                    const [lonStr, latStr] = pair.trim().split(/\s+/);
+                    return [parseFloat(lonStr), parseFloat(latStr)];
+                });
+                return polygonCoordinates;
+            });
+
+            // GeoJSON MultiPolygon formatı: [[[Ring Coords], [Hole Coords]], [[Next Polygon]]]
+            // Bu örnekte tek bir çokgen (MultiPolygon) içinde birden fazla halka olabilir.
+            return [multiPolygon]; 
+        }
+
+        /**
+         * WKT içeren nesne dizisini geçerli bir GeoJSON FeatureCollection'a dönüştürür.
+         */
+        function convertArrayToGeoJSONFeatureCollection(dataArray) {
+            const newFeatures = dataArray.map(feature => {
+                const newFeature = { 
+                    type: "Feature", 
+                    properties: { ...feature } 
+                };
+
+                if (feature.GeomWKT) {
+                    newFeature.geometry = {
+                        type: "MultiPolygon",
+                        coordinates: parseWKTCoordinates(feature.GeomWKT)
+                    };
+                    delete newFeature.properties.GeomWKT;
+                }
+                
+                return newFeature;
+            });
+
+            return {
+                type: "FeatureCollection",
+                features: newFeatures
+            };
+        }
+  </script>
+</html>
