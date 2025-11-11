@@ -346,7 +346,8 @@ let marker, circle;
         function onSuccess(position) {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
-            const accuracy = position.coords.accuracy;
+            //const accuracy = position.coords.accuracy;
+            const accuracy = 10;
 
             // Butonu "Durdur" moduna getir ve aktifleştir
             locationButton.textContent = "🛑";
@@ -358,7 +359,7 @@ let marker, circle;
                 marker = L.marker([lat, lon]).addTo(map);
                 circle = L.circle([lat, lon], {
                     radius: accuracy,
-                    color: '#007BFF',
+                    color: '#007BFF22',
                     fillColor: '#007BFF',
                     fillOpacity: 0.15
                 }).addTo(map);
