@@ -11,18 +11,80 @@
 
     <style>
         #map {
-            height: 90vh; 
-            width: 95%;
-            margin: 20px auto;
+            position:fixed;
+            height: 100%; 
+            width: 100%;
+            top:0;
+            margin: 0;
             border: 1px solid #ccc;
             box-shadow: 0 0 5px rgba(0,0,0,0.2);
         }
+form {
+  position: absolute;
+  z-index: 1000;
+  top: 20px;
+  right: 20px;
+  padding: 10px;
+  background: #333;
+  display:none;
+}
+
+#userSearch {
+  height: 2.5em;
+  width: 150px;
+}
+
+.ui-autocomplete {
+    z-index: 2000;    
+}
+/* Buton için basit stil */
+#controls {
+  position: absolute;
+  z-index: 1500;
+  top: 20px;
+  left: 50px;
+  padding: 0px;
+  padding: 0px;
+  text-align: center;
+}
+#locationButton {
+    padding: 5px 5px;
+    font-size: 16px;
+    cursor: pointer;
+    /* width: 30px; */
+    border: none;
+    border-radius: 50%;
+    transition: background-color 0.3s;
+}
+  /* Duruma göre renkler */
+        #locationButton.start {
+            background-color: #007BFF; /* Mavi - Başlat */
+            color: white;
+        }
+        #locationButton.searching {
+            background-color: #ffc107; /* Sarı - Aranıyor */
+            color: black;
+            cursor: not-allowed;
+        }
+        #locationButton.stop {
+            background-color: #dc3545; /* Kırmızı - Durdur */
+            color: white;
+        }
+        #locationButton:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }      
     </style>
 </head>
 <body>
-
-    <div id="map"></div>
-
+   <div id="map"></div>
+   <div id="controls">
+     <button id="locationButton">📍</button>
+   </div>
+   <form>
+     <!-- this is the element we'll target with jQuery UI -->
+     <input id="userSearch" type="text" placeholder="Search for a Member" />
+   </form>
 </body>
   <script>
             // Not: URL'deki Türkçe karakter ("ç") doğru bir şekilde %C3%A7 olarak kodlanmıştır.
@@ -31,17 +93,64 @@
         const geoJsonUrl = "https://bybesu.github.io/geoJson/geojson/çiçekli_kesin.json";
 
         // 1. Haritayı Başlatma
-        const map = L.map('map').setView([40.0, 30.0], 7); // Başlangıç konumu
-
         // 2. Google Uydu Görüntüsü Katmanını Ekleme
         // Bu, Google uydu haritasını göstermenin yaygın bir yoludur.
         // Google Maps API lisans kurallarına uygun olarak kullanmanız tavsiye edilir.
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+        });
+
+        // Google Uydu Görüntüsü
         const googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
             maxZoom: 20,
             subdomains:['mt0','mt1','mt2','mt3'],
             attribution: 'Map data &copy; Google Satellite'
-        }).addTo(map);
+        });
+        
+        // Google Arazi Haritası
+        const googleTerrain = L.tileLayer('http://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',{
+            maxZoom: 20,
+            subdomains:['mt0','mt1','mt2','mt3'],
+            attribution: 'Map data &copy; Google Terrain'
+        });
 
+   const googleHybrid = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',{
+        maxZoom: 20,
+        subdomains:['mt0','mt1','mt2','mt3']
+});    
+    
+    const googleStreets = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{
+        maxZoom: 20,
+        subdomains:['mt0','mt1','mt2','mt3']
+});
+        // Karanlık Mod (CartoDB) - Veri göstermek için güzeldir
+        const cartoDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a>'
+        });
+var Stadia_AlidadeSatellite = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.{ext}', {
+	minZoom: 0,
+	maxZoom: 20,
+	attribution: '&copy; CNES, Distribution Airbus DS, © Airbus DS, © PlanetObserver (Contains Copernicus Data) | &copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	ext: 'jpg'
+});
+        // Seçenekleri bir nesnede topla (Kullanıcıya görünecek isimler)
+        const baseMaps = {
+            "Google Uydu": googleSat,
+            "Google Hibrit": googleHybrid,
+            "Google Sokak":googleStreets,
+            "Sokak Haritası (OSM)": osm,
+            "Google Arazi": googleTerrain,
+            "Karanlık Mod": cartoDark,
+            "Stadia_AlidadeSatellite":Stadia_AlidadeSatellite
+        };
+
+const map = L.map('map', {
+            center: [40.00, 30.00], // Varsayılan: Bursa
+            zoom: 13,
+            layers: [googleSat] // Haritanın varsayılan olarak hangi altlıkla açılacağı
+        });
+L.control.layers(baseMaps).addTo(map);
+    // https://leaflet-extras.github.io/leaflet-providers/preview/
         // 3. GeoJSON Verisini Yükleme
         fetch(geoJsonUrl)
             .then(response => {
@@ -163,5 +272,138 @@
                 features: newFeatures
             };
         }
+    
+let marker, circle;
+        let ilkKonumBulundu = false;
+        let watchId = null; // Konum izleme işleminin ID'sini (durumunu) tutar
+        const locationButton = document.getElementById('locationButton');
+
+        // --- 1. BUTONA TIKLAMA OLAYI (AÇ/KAPAT) ---
+        
+        locationButton.addEventListener('click', () => {
+            if (watchId) {
+                // Konum takibi ZATEN AKTİFSE (DURDURMA MODU)
+                stopLocationWatch();
+            } else {
+                // Konum takibi KAPALIYSA (BAŞLATMA MODU)
+                startLocationWatch();
+            }
+        });
+
+        // --- 2. KONUM İZLEMEYİ BAŞLATAN FONKSİYON ---
+        function startLocationWatch() {
+            if (!navigator.geolocation) {
+                alert("Tarayıcınız Geolocation API'sini desteklemiyor.");
+                return;
+            }
+
+            // Butonu "Aranıyor" durumuna getir
+            locationButton.textContent = "Konum Aranıyor...";
+            locationButton.className = "searching";
+            locationButton.disabled = true; 
+
+            // Yüksek doğrulukta izlemeyi başlat
+            watchId = navigator.geolocation.watchPosition(onSuccess, onError, {
+                enableHighAccuracy: true,
+                timeout: 10000, // Zaman aşımını 10 saniyeye çıkardık
+                maximumAge: 0
+            });
+        }
+
+        // --- 3. KONUM İZLEMEYİ DURDURAN FONKSİYON ---
+        function stopLocationWatch() {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId); // Takibi durdur
+                watchId = null; // Durumu sıfırla
+
+                // Butonu "Başlat" moduna döndür
+                locationButton.textContent = "📍";
+                locationButton.className = "start";
+                locationButton.disabled = false;
+
+                // Haritadan işaretçi ve daireyi kaldır
+                if (marker) {
+                    map.removeLayer(marker);
+                    marker = null;
+                }
+                if (circle) {
+                    map.removeLayer(circle);
+                    circle = null;
+                }
+                
+                // Harita odağını sıfırla
+                ilkKonumBulundu = false;
+                
+                // Popup'ı kapat (eğer açıksa)
+                map.closePopup();
+            }
+        }
+
+
+        // --- 4. YARDIMCI FONKSİYONLAR (onSuccess ve onError) ---
+
+        // Konum Başarıyla Bulunduğunda
+        function onSuccess(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            // Butonu "Durdur" moduna getir ve aktifleştir
+            locationButton.textContent = "🛑";
+            locationButton.className = "stop";
+            locationButton.disabled = false;
+            
+            if (!marker) {
+                // İlk kez bulunduysa, işaretçi ve daireyi oluştur
+                marker = L.marker([lat, lon]).addTo(map);
+                circle = L.circle([lat, lon], {
+                    radius: accuracy,
+                    color: '#007BFF',
+                    fillColor: '#007BFF',
+                    fillOpacity: 0.15
+                }).addTo(map);
+            } else {
+                // Zaten varsa, konumlarını güncelle
+                marker.setLatLng([lat, lon]);
+                circle.setLatLng([lat, lon]);
+                circle.setRadius(accuracy);
+            }
+
+            marker.bindPopup(`<b>Konumunuz</b><br>Doğruluk: ${accuracy.toFixed(0)} metre`);
+
+            // Sadece ilk bulunduğunda haritayı odakla
+            if (!ilkKonumBulundu) {
+                map.setView([lat, lon], 16);
+                ilkKonumBulundu = true;
+                marker.openPopup(); // İlk bulunduğunda popup'ı aç
+            }
+        }
+
+        // Konum Alınırken Hata Olursa
+        function onError(error) {
+            let message = "";
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message = "Kullanıcı konum iznini reddetti.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = "Konum bilgisi şu anda mevcut değil.";
+                    break;
+                case error.TIMEOUT:
+                    message = "Konum bilgisi alma isteği zaman aşımına uğradı.";
+                    break;
+                default:
+                    message = "Bilinmeyen bir hata oluştu.";
+            }
+            alert("Hata: " + message);
+
+            // Hata durumunda takibi durdur ve her şeyi sıfırla
+            stopLocationWatch();
+
+            if (error.code === error.PERMISSION_DENIED) {
+                 locationButton.textContent = "İzin Reddedildi";
+                 locationButton.disabled = true; // İzin reddedildiyse butonu kilitle
+            }
+        }    
   </script>
 </html>
