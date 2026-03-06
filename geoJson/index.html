@@ -122,7 +122,7 @@ form {
 });    
    const arcGis= L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
         {
-          attribution: 'BBB-CBS',
+          attribution: 'besu',
           crossOrigin: true,
           maxNativeZoom: 19, // Maksimum gerçek zoom seviyesi
           maxZoom: 20, // Görünür maksimum zoom
@@ -130,8 +130,6 @@ form {
           updateWhenZooming: false,
           tileSize: 256,
           keepBuffer: 2,
-          zIndex: window.zIndexConfig.baseMap,
-          pane: 'baseMapPane'
             });
 
     
