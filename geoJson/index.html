@@ -91,7 +91,7 @@ form {
 //        const geoJsonUrl = "https://bybesu.github.io/geoJson/geojson/%C3%A7i%C3%A7ekli_kesin.json";
 
         var geoJsonUrl = "https://bybesu.github.io/geoJson/geojson/çiçekli_kesin.json";
-	        geoJsonUrl = "https://bybesu.github.io/geoJson/geojson/17101_gölcükDonama.json";
+	        //geoJsonUrl = "https://bybesu.github.io/geoJson/geojson/17101_gölcükDonama.json";
 	  
 
         // 1. Haritayı Başlatma
@@ -120,6 +120,20 @@ form {
         maxZoom: 20,
         subdomains:['mt0','mt1','mt2','mt3']
 });    
+   const arcGis= L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        {
+          attribution: 'BBB-CBS',
+          crossOrigin: true,
+          maxNativeZoom: 19, // Maksimum gerçek zoom seviyesi
+          maxZoom: 20, // Görünür maksimum zoom
+          updateWhenIdle: false,
+          updateWhenZooming: false,
+          tileSize: 256,
+          keepBuffer: 2,
+          zIndex: window.zIndexConfig.baseMap,
+          pane: 'baseMapPane'
+            });
+
     
     const googleStreets = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{
         maxZoom: 20,
@@ -140,6 +154,7 @@ var Stadia_AlidadeSatellite = L.tileLayer('https://tiles.stadiamaps.com/tiles/al
             "Google Uydu": googleSat,
             "Google Hibrit": googleHybrid,
             "Google Sokak":googleStreets,
+            "ArcGIS":arcGis,
             "Sokak Haritası (OSM)": osm,
             "Google Arazi": googleTerrain,
             "Karanlık Mod": cartoDark,
